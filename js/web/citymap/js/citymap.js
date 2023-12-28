@@ -15,14 +15,15 @@
 /**
  * CityMap class
  *
- * @type {{highlightOldBuildings: CityMap.highlightOldBuildings, EfficiencyFactor: number, init: CityMap.init, UnlockedAreas: null, BlockedAreas: null, SubmitData: CityMap.SubmitData, SetBuildings: CityMap.SetBuildings, CityData: null, ScaleUnit: number, CityView: string, CityEntities: null, hashCode: (function(*): *), OccupiedArea: number, IsExtern: boolean, showSubmitBox: CityMap.showSubmitBox, getAreas: CityMap.getAreas, PrepareBox: CityMap.PrepareBox, GetBuildingSize: (function(*): {}), BuildGrid: CityMap.BuildGrid, copyMetaInfos: CityMap.copyMetaInfos}, GetBuildingEra: (function(*): {})}
+ * @type {{highlightOldBuildings: CityMap.highlightOldBuildings, EfficiencyFactor: number, init: CityMap.init, UnlockedAreas: null, OtherPlayerUnlockedAreas: null, BlockedAreas: null, SubmitData: CityMap.SubmitData, SetBuildings: CityMap.SetBuildings, CityData: null, ScaleUnit: number, CityView: string, CityEntities: null, hashCode: (function(*): *), OccupiedArea: number, OccupiedArea2: number, IsExtern: boolean, showSubmitBox: CityMap.showSubmitBox, getAreas: CityMap.getAreas, PrepareBox: CityMap.PrepareBox, GetBuildingSize: (function(*): {}), BuildGrid: CityMap.BuildGrid, copyMetaInfos: CityMap.copyMetaInfos}, GetBuildingEra: (function(*): {})}
  */
 let CityMap = {
 	CityData: null,
 	CityEntities: null,
 	ScaleUnit: 100,
 	CityView: 'skew',
-	UnlockedAreas: null,
+	UnlockedAreas: null, // For the actual player (own)
+	OtherPlayerUnlockedAreas: null, // Last visited player (other)
 	BlockedAreas: null,
 	OccupiedArea: 0,
 	EfficiencyFactor: 0,
@@ -32,7 +33,6 @@ let CityMap = {
 	/**
 	 * Zündung...
 	 *
-	 * @param event
 	 * @param event
 	 * @param Data The City data
 	 * @param Title Name of the city
@@ -185,12 +185,11 @@ let CityMap = {
 
 
 	/**
-	 * Erzeugt ein Raster für den Hintergrund
+	 * Generates a grid for the background 
 	 *
 	 */
 	BuildGrid:()=> {
-
-		let ua = CityMap.UnlockedAreas;
+		let ua = CityMap.IsExtern ? CityMap.OtherPlayerUnlockedAreas : CityMap.UnlockedAreas;
 
 		for(let i in ua)
 		{
@@ -243,10 +242,7 @@ let CityMap = {
 		CityMap.OccupiedArea2 = [];
 		let StreetsNeeded = 0;
 
-		if(CityMap.IsExtern === false) {
-			// Unlocked Areas rendern
-			CityMap.BuildGrid();
-		}
+		CityMap.BuildGrid();
 
 		let MinX = 0,
 			MinY = 0,
@@ -339,10 +335,11 @@ let CityMap = {
 
 
 	/**
-	 * Statistiken in die rechte Sidebar
+	 * Statistics on the right sidebar
 	 */
 	getAreas: ()=>{
-		let total = ((CityMap.UnlockedAreas.length -1) * 16) + 256, // x + (4*4) und 1x die Startflache 16 * 16
+		let ua = CityMap.IsExtern ? CityMap.OtherPlayerUnlockedAreas : CityMap.UnlockedAreas;
+		let total = ((ua.length - 1) * 16) + 256, // x*(4*4) + the starting area (16*16)
 			occupied = CityMap.OccupiedArea,
 			txtTotal = i18n('Boxes.CityMap.WholeArea') + total,
 			txtFree = i18n('Boxes.CityMap.FreeArea') + (total - occupied);
@@ -358,11 +355,8 @@ let CityMap = {
 			$('#sidebar').append(aW);
 		}
 
-		// Non player city => Unlocked areas cant be detected => dont show free space
-		if (!CityMap.IsExtern) {
-			$('.total-area').html(txtTotal);
-			$('.occupied-area').html(txtFree);
-		}
+		$('.total-area').html(txtTotal);
+		$('.occupied-area').html(txtFree);
 
 		let sortable = [];
 		for(let x in CityMap.OccupiedArea2) sortable.push([x, CityMap.OccupiedArea2[x]]);
@@ -382,6 +376,7 @@ let CityMap = {
 			const count = sortable[x][1];
 			const pct = parseFloat(100*count/CityMap.OccupiedArea).toFixed(1);
 
+			// Space used per type (number and pct value)
 			let str = `${TypeName}:<br> ${count} (${pct}%)<br>`;
 
 			if (type === 'street') {
@@ -404,7 +399,7 @@ let CityMap = {
 
 
 	/**
-	 * Erzeugt einen Hash vom String
+	 * Generates a hash from the string
 	 *
 	 * @param str
 	 * @returns {number}
@@ -455,7 +450,7 @@ let CityMap = {
 
 
 	/**
-	 * Send citydata to the server
+	 * Send (own) citydata to the server
 	 *
 	 */
 	SubmitData: ()=> {
@@ -514,11 +509,15 @@ let CityMap = {
 
 
 	/**
-	 * Copy citydata to the clipboard
+	 * Copy (own) citydata to the clipboard
 	 */
 	copyMetaInfos: () => {
 		helper.str.copyToClipboard(
-			JSON.stringify({CityMapData:MainParser.CityMapData,CityEntities:MainParser.CityEntities,UnlockedAreas:CityMap.UnlockedAreas})
+			JSON.stringify({
+				CityMapData:MainParser.CityMapData,
+				CityEntities:MainParser.CityEntities,
+				UnlockedAreas:CityMap.UnlockedAreas
+			})
 		).then(() => {
 			HTML.ShowToastMsg({
 				head: i18n('Boxes.CityMap.ToastHeadCopyData'),

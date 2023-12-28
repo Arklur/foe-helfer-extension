@@ -149,6 +149,7 @@ GetFights = () =>{
 	// die Gebäudenamen übernehmen
 	FoEproxy.addMetaHandler('city_entities', (xhr, postData) => {
 		let EntityArray = JSON.parse(xhr.responseText);
+
 		MainParser.CityEntities = Object.assign({}, ...EntityArray.map((x) => ({ [x.id]: x })));
 		for (let i in MainParser.CityEntities) {
 			if (!MainParser.CityEntities.hasOwnProperty(i)) continue;
@@ -260,10 +261,10 @@ GetFights = () =>{
 		MainParser.CityMapData = Object.assign({}, ...data.responseData.city_map.entities.map((x) => ({ [x.id]: x })));
 		MainParser.SaveBuildings(MainParser.CityMapData);
 
-		// Güterliste
+		// Goods list
 		GoodsList = data.responseData.goodsList;
 
-		// freigeschaltete Erweiterungen sichern
+		// Save unlocked expansions
 		CityMap.UnlockedAreas = data.responseData.city_map.unlocked_areas;
 		CityMap.BlockedAreas = data.responseData.city_map.blocked_areas;
 
@@ -368,10 +369,11 @@ GetFights = () =>{
 	});
 
 
-	// Besuche anderen Spieler
+	// Visiting other player
 	FoEproxy.addHandler('OtherPlayerService', 'visitPlayer', (data, postData) => {
 		LastMapPlayerID = data.responseData['other_player']['player_id'];
 		MainParser.OtherPlayerCityMapData = Object.assign({}, ...data.responseData['city_map']['entities'].map((x) => ({ [x.id]: x })));
+		CityMap.OtherPlayerUnlockedAreas = data.responseData.city_map.unlocked_areas;
 	});
 
 
@@ -787,7 +789,7 @@ let HelperBeta = {
 };
 
 /**
- * @type {{BuildingSelectionKits: null, StartUpType: null, SetArkBonus: MainParser.SetArkBonus, setGoodsData: MainParser.setGoodsData, SaveBuildings: MainParser.SaveBuildings, Conversations: *[], UpdateCityMap: MainParser.UpdateCityMap, BuildingChains: null, UpdateInventory: MainParser.UpdateInventory, SelectedMenu: string, foeHelperBgApiHandler: ((function(({type: string}&Object)): Promise<{ok: true, data: *}|{ok: false, error: string}>)|null), CityEntities: null, GetPlayerLink: ((function(*, *): (string|*))|*), ArkBonus: number, InnoCDN: string, Boosts: {}, obj2FormData: obj2FormData, UpdatePlayerDict: MainParser.UpdatePlayerDict, PlayerPortraits: *[], Quests: null, i18n: null, ResizeFunctions: MainParser.ResizeFunctions, getAddedDateTime: (function(*, *=): number), loadJSON: MainParser.loadJSON, ExportFile: MainParser.ExportFile, getCurrentDate: (function(): Date), activateDownload: boolean, Inventory: {}, compareTime: ((function(number, number): (string|boolean))|*), EmissaryService: null, setLanguage: MainParser.setLanguage, BoostMapper: Record<string, string>, SelfPlayer: MainParser.SelfPlayer, UnlockedAreas: null, CollectBoosts: MainParser.CollectBoosts, sendExtMessage: ((function(*): Promise<*|undefined>)|*), BoostSums: {supply_production: number, def_boost_attacker: number, coin_production: number, def_boost_defender: number, att_boost_attacker: number, att_boost_defender: number, happiness_amount: number}, ClearText: (function(*): *), VersionSpecificStartupCode: MainParser.VersionSpecificStartupCode, checkNextUpdate: (function(*): string|boolean), Language: string, SendLGData: ((function(*): boolean)|*), UpdatePlayerDictCore: MainParser.UpdatePlayerDictCore, GetBuildingLink: ((function(*, *): (string|*))|*), BonusService: null, setConversations: MainParser.setConversations, StartUp: MainParser.StartUp, CityMapData: {}, DebugMode: boolean, OtherPlayerCityMapData: {}, CityMapEraOutpostData: null, CastleSystemLevels: null, getCurrentDateTime: (function(): number), round: ((function(number): number)|*), savedFight: null, BuildingSets: null, loadFile: MainParser.loadFile, MetaIds: {}, send2Server: MainParser.send2Server, GetGuildLink: ((function(*, *): (string|*))|*)}}
+ * @type {{BuildingSelectionKits: null, StartUpType: null, SetArkBonus: MainParser.SetArkBonus, setGoodsData: MainParser.setGoodsData, SaveBuildings: MainParser.SaveBuildings, Conversations: *[], UpdateCityMap: MainParser.UpdateCityMap, BuildingChains: null, UpdateInventory: MainParser.UpdateInventory, SelectedMenu: string, foeHelperBgApiHandler: ((function(({type: string}&Object)): Promise<{ok: true, data: *}|{ok: false, error: string}>)|null), CityEntities: null, GetPlayerLink: ((function(*, *): (string|*))|*), ArkBonus: number, InnoCDN: string, Boosts: {}, obj2FormData: obj2FormData, UpdatePlayerDict: MainParser.UpdatePlayerDict, PlayerPortraits: *[], Quests: null, i18n: null, ResizeFunctions: MainParser.ResizeFunctions, getAddedDateTime: (function(*, *=): number), loadJSON: MainParser.loadJSON, ExportFile: MainParser.ExportFile, getCurrentDate: (function(): Date), activateDownload: boolean, Inventory: {}, compareTime: ((function(number, number): (string|boolean))|*), EmissaryService: null, setLanguage: MainParser.setLanguage, BoostMapper: Record<string, string>, SelfPlayer: MainParser.SelfPlayer, CollectBoosts: MainParser.CollectBoosts, sendExtMessage: ((function(*): Promise<*|undefined>)|*), BoostSums: {supply_production: number, def_boost_attacker: number, coin_production: number, def_boost_defender: number, att_boost_attacker: number, att_boost_defender: number, happiness_amount: number}, ClearText: (function(*): *), VersionSpecificStartupCode: MainParser.VersionSpecificStartupCode, checkNextUpdate: (function(*): string|boolean), Language: string, SendLGData: ((function(*): boolean)|*), UpdatePlayerDictCore: MainParser.UpdatePlayerDictCore, GetBuildingLink: ((function(*, *): (string|*))|*), BonusService: null, setConversations: MainParser.setConversations, StartUp: MainParser.StartUp, CityMapData: {}, DebugMode: boolean, OtherPlayerCityMapData: {}, CityMapEraOutpostData: null, CastleSystemLevels: null, getCurrentDateTime: (function(): number), round: ((function(number): number)|*), savedFight: null, BuildingSets: null, loadFile: MainParser.loadFile, MetaIds: {}, send2Server: MainParser.send2Server, GetGuildLink: ((function(*, *): (string|*))|*)}}
  */
 let MainParser = {
 
@@ -815,8 +817,6 @@ let MainParser = {
 	CityMapEraOutpostData: null,
 	OtherPlayerCityMapData: {},
 
-	// Unlocked extensions
-	UnlockedAreas: null,
 	Quests: null,
 	ArkBonus: 0,
 	Inventory: {},
