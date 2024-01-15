@@ -17,6 +17,8 @@
     top: 30%;
     right: 15%;
     width: 450px;
+    height: 500px;
+    font-size: 90%;
 }
 
 #bluegalaxy #bluegalaxyBody {
@@ -51,6 +53,10 @@
     height: 30px;
     content: "";
     display: block;
+}
+
+#bluegalaxy table th[data-type] {
+    cursor: pointer
 }
 
 #bluegalaxy table th.icon.goods::before  {
