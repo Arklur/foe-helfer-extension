@@ -1,9 +1,24 @@
 ## Changelog - Extension
 
+##### 3.5.0.2
+
+**BugFix**
+- Export-Funktion:
+	- Typo im Code gefixt
+
+---
+
 ##### 3.5.0.1
+**Update**
+- Stadtübersicht
+	- Gebäude-Highlighting verbessert
+	- Markierung für Gebäude, die keine Straße benötigen, hinzugefügt
+  	- globale Sortierung integriert, zeigt an wo Spalten sortiert werden können
+
 **BugFix**
 - Galaxie Helfer:
 	- Liste hat sich nicht immer aktualisiert
+	- Liste war zu lang
 
 ---
 

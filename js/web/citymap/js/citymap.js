@@ -119,9 +119,19 @@ let CityMap = {
 	 */
 	PrepareBox: (Title)=> {
 		let oB = $('#city-map-overlayBody'),
-			w = $('<div />').attr({'id':'citymap-wrapper'});
+			wrapper = $('<div />').attr({'id':'citymap-wrapper'}),
+			mapfilters = $('<div />').attr({'id': 'map-filters'});
 
-		w.append( $('<div />').attr('id', 'map-container').append( $('<div />').attr('id', 'grid-outer').attr('data-unit', CityMap.ScaleUnit).attr('data-view', CityMap.CityView).append( $('<div />').attr('id', 'map-grid') ) ) ).append( $('<div />').attr({'id': 'sidebar'}) );
+		wrapper.append( 
+			$('<div />').attr('id', 'map-container')
+				.append( $('<div />').attr('id', 'grid-outer').attr('data-unit', CityMap.ScaleUnit).attr('data-view', CityMap.CityView)
+					.append( $('<div />').attr('id', 'map-grid') ) 
+				) 
+			)
+			.append( 
+				$('<div />').attr({'id': 'sidebar'}) 
+					.append( mapfilters )
+			);
 
 		$('#city-map-overlayHeader > .title').attr('id', 'map' + CityMap.hashCode(Title));
 
@@ -157,7 +167,9 @@ let CityMap = {
 
 		$('#city-map-overlay').on('change', '#scale-view', function(){
 			let unit = parseInt($('#scale-view option:selected').data('scale'));
-
+			$('#highlight-old-buildings')[0].checked=false;
+			$('#show-nostreet-buildings')[0].checked=false;
+			
 			CityMap.ScaleUnit = unit;
 
 			$('#grid-outer').attr('data-unit', unit);
@@ -165,7 +177,7 @@ let CityMap = {
 
 			CityMap.SetBuildings(CityMap.CityData, false);
 
-			$('#map-container').scrollTo( $('.pulsate') , 800, {offset: {left: -280, top: -280}, easing: 'swing'});
+			$('#map-container').scrollTo( $('.highlighted') , 800, {offset: {left: -280, top: -280}, easing: 'swing'});
 			$('.to-old-legends').hide();
 			$('.building-count-area').show();
 		});
@@ -173,15 +185,27 @@ let CityMap = {
 		// Button for submit Box
 		if (CityMap.IsExtern === false) {
 			menu.append($('<input type="text" id="BuildingsFilter" placeholder="'+ i18n('Boxes.CityMap.FilterBuildings') +'" oninput="CityMap.filterBuildings(this.value)">'));
-			menu.append($('<button />').addClass('btn-default ml-auto').attr({ id: 'highlight-old-buildings', onclick: 'CityMap.highlightOldBuildings()' }).text(i18n('Boxes.CityMap.HighlightOldBuildings')));
-			menu.append($('<button />').addClass('btn-default ml-auto').attr({ id: 'copy-meta-infos', onclick: 'CityMap.copyMetaInfos()' }).text(i18n('Boxes.CityMap.CopyMetaInfos')));
-			menu.append($('<button />').addClass('btn-default ml-auto').attr({ id: 'show-submit-box', onclick: 'CityMap.showSubmitBox()' }).text(i18n('Boxes.CityMap.ShowSubmitBox')));
+			menu.append(
+				$('<div />').addClass('btn-group')
+					.append($('<button />').addClass('btn-default ml-auto').attr({ id: 'copy-meta-infos', onclick: 'CityMap.copyMetaInfos()' }).text(i18n('Boxes.CityMap.CopyMetaInfos')))
+					.append($('<button />').addClass('btn-default ml-auto').attr({ id: 'show-submit-box', onclick: 'CityMap.showSubmitBox()' }).text(i18n('Boxes.CityMap.ShowSubmitBox')))
+			);
+
+			mapfilters.append(
+				$('<label />').attr({ for: 'highlight-old-buildings' }).text(i18n('Boxes.CityMap.HighlightOldBuildings'))
+					.prepend($('<input />').attr({ type: 'checkbox', id: 'highlight-old-buildings', onclick: 'CityMap.highlightOldBuildings()' }))
+				);
+
+			mapfilters.append(
+				$('<label />').attr({ for: 'show-nostreet-buildings' }).text(i18n('Boxes.CityMap.ShowNoStreetBuildings'))
+					.prepend($('<input />').attr({ type: 'checkbox', id: 'show-nostreet-buildings', onclick: 'CityMap.showNoStreetBuildings()' }))
+				);
 		}
 
 
 		/* In das Menü "schieben" */
-		w.prepend(menu);
-		oB.append(w);
+		oB.append(wrapper);
+		$('#citymap-wrapper').append(menu);
 	},
 
 
@@ -233,7 +257,7 @@ let CityMap = {
 
 		// https://foede.innogamescdn.com/assets/city/buildings/R_SS_MultiAge_SportBonus18i.png
 
-		let ActiveId = $('#grid-outer').find('.pulsate').data('entityid') || null;
+		let ActiveId = $('#grid-outer').find('.highlighted').data('entityid') || null;
 
 		// einmal komplett leer machen, wenn gewünscht
 		$('#grid-outer').find('.map-bg').remove();
@@ -262,9 +286,15 @@ let CityMap = {
 				y = (CityMap.CityData[b]['y'] === undefined ? 0 : ((parseInt(CityMap.CityData[b]['y']) * CityMap.ScaleUnit) / 100)),
 				xsize = ((parseInt(BuildingSize['xsize']) * CityMap.ScaleUnit) / 100),
 				ysize = ((parseInt(BuildingSize['ysize']) * CityMap.ScaleUnit) / 100),
-				// to do noStreet = (CityMap.NewCityMapData[CityMap.CityData[b]['id']].needsStreet == 0 ? ' noStreet' : '')
+				noStreet = '', isSpecial = '', chainBuilding = ''
 
-				f = $('<span />').addClass('entity ' + d['type']).css({
+				if(CityMap.IsExtern === false) {
+					noStreet = (MainParser.NewCityMapData[CityMap.CityData[b]['id']].needsStreet == 0 ? ' noStreet' : '')
+					isSpecial = (MainParser.NewCityMapData[CityMap.CityData[b]['id']].isSpecial ? ' special' : '')
+					chainBuilding = (MainParser.NewCityMapData[CityMap.CityData[b]['id']].chainBuilding != undefined ? ' chain' : '')
+				}
+				
+				f = $('<span />').addClass('entity ' + d['type'] + noStreet + isSpecial + chainBuilding).css({
 					width: xsize + 'em',
 					height: ysize + 'em',
 					left: x + 'em',
@@ -315,7 +345,7 @@ let CityMap = {
 			// die Größe wurde geändert, wieder aktivieren
 			if (ActiveId !== null && ActiveId === CityMap.CityData[b]['id'])
 			{
-				f.addClass('pulsate');
+				f.addClass('highlighted');
 			}
 
 			$('#grid-outer').append( f );
@@ -447,7 +477,15 @@ let CityMap = {
 	 */
 	highlightOldBuildings: ()=> {
 		$('.oldBuildings').toggleClass('diagonal');
-		$('.building-count-area, .to-old-legends').fadeToggle();
+		$('.building-count-area, .to-old-legends').toggle();
+	},
+
+
+	/**
+	 * Show Buildings that do not need a street
+	 */
+	showNoStreetBuildings: ()=> {
+		$('.noStreet').toggleClass('highlight');
 	},
 
 
@@ -570,13 +608,15 @@ let CityMap = {
 		for (sp of spans) {
 			let title = $(sp).attr('data-original-title');
 			if ((string != "") && (title.substr(0,title.indexOf("<em>")).toLowerCase().indexOf(string.toLowerCase()) > -1)) {
-				$(sp).addClass('blinking');
+				$(sp).addClass('highlighted');
 			} else {
-				$(sp).removeClass('blinking');
+				$(sp).removeClass('highlighted');
 			}
-
 		}
-
+		$('#grid-outer').addClass('desaturate');
+		if (string == '') {
+			$('#grid-outer').removeClass('desaturate');
+		}
 	},
 
 
@@ -1060,11 +1100,11 @@ let CityMap = {
 
 	// returns false if building is idle or does not produce anything
 	getAllProductions(ceData, data, era) {
+		let productions = {
+			time: 0, // todo
+			resources: []
+		};
 		if (data.type != "generic_building" && data.type != "greatbuilding") {
-			let productions = {
-				time: 0, // todo
-				resources: []
-			};
 			if (ceData.is_special) { // special building
 				if (ceData.available_products !== undefined) { // TO DO production buildings
 					if (Array.isArray(ceData.available_products))
@@ -1097,10 +1137,7 @@ let CityMap = {
 		else if (data.type === "generic_building") {
 			if (ceData.components[era]) 
 				if (ceData.components[era].production) {
-					productions = {
-						time: ceData.components[era].production.options[0].time, // TODO
-						resources: []
-					};
+					productions.time = ceData.components[era].production.options[0].time; // TODO
 					ceData.components[era].production.options[0].products.forEach(product => {
 						let resource = {
 							type: product.type,
@@ -1188,7 +1225,7 @@ let CityMap = {
 			setBuilding: this.getSetBuilding(ceData),
 
 			boosts: this.getBuildingBoosts(ceData, data, era),
-			production: this.getAllProductions(ceData, data, era),
+			//production: this.getAllProductions(ceData, data, era),
 
 			// todo GBs probably need more stuff
 			level: (data.type == "greatbuilding" ? data.level : undefined), // level also includes eraId in raw data, we do not like that
