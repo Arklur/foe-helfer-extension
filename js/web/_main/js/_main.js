@@ -63,7 +63,7 @@ let ApiURL = 'https://api.foe-rechner.de/',
 	OwnUnits = [],
 	EnemyUnits = [],
 	UnlockedFeatures = [],
-	possibleMaps = ['main', 'gex', 'gg', 'era_outpost', 'gvg'],
+	possibleMaps = ['main', 'gex', 'gg', 'era_outpost', 'guild_raids', 'cultural_outpost'],
 	PlayerLinkFormat = 'https://foe.scoredb.io/__world__/Player/__playerid__',
 	GuildLinkFormat = 'https://foe.scoredb.io/__world__/Guild/__guildid__',
 	BuildingsLinkFormat = 'https://forgeofempires.fandom.com/wiki/__buildingid__',
@@ -218,7 +218,7 @@ GetFights = () =>{
 	// --------------------------------------------------------------------------------------------------
 	// Player- und Gilden-ID setzen
 	FoEproxy.addHandler('StartupService', 'getData', (data, postData) => {
-
+        moment.locale(i18n('Local'));
 		window.addEventListener("error", function (e) {
 			console.error(e.error);
 			e.preventDefault();
@@ -305,17 +305,28 @@ GetFights = () =>{
 		MainParser.CollectBoosts(data.responseData);
 	});
 
+	// QI map
+	FoEproxy.addHandler('GuildRaidsMapService', 'getOverview', (data, postData) => {		
+		QIMap.init(data.responseData)
+	})
 
 	// --------------------------------------------------------------------------------------------------
 	// Karte wird gewechselt zum Außenposten
 	FoEproxy.addHandler('CityMapService', 'getCityMap', (data, postData) => {
 		ActiveMap = data.responseData.gridId;
-
-		// update FP-Bar for more customizable
-		// $('#fp-bar').removeClass(possibleMaps).addClass(ActiveMap);
+		FoEproxy.triggerFoeHelperHandler("ActiveMapUpdated");
 
 		if (ActiveMap === 'era_outpost') {
-			MainParser.CityMapEraOutpostData = Object.assign({}, ...data.responseData['entities'].map((x) => ({ [x.id]: x })));
+			CityMap.EraOutpostData = Object.assign({}, ...data.responseData['entities'].map((x) => ({ [x.id]: x })));
+			CityMap.EraOutpostAreas = data.responseData['unlocked_areas'];
+		}
+		else if (ActiveMap === 'guild_raids') {
+			CityMap.QIData = Object.assign({}, ...data.responseData['entities'].map((x) => ({ [x.id]: x })));
+			CityMap.QIAreas = data.responseData['unlocked_areas'];
+		}
+		else if (ActiveMap === 'cultural_outpost') {
+			CityMap.CulturalOutpostData = Object.assign({}, ...data.responseData['entities'].map((x) => ({ [x.id]: x })));
+			CityMap.CulturalOutpostAreas = data.responseData['unlocked_areas'];
 		}
 	});
 
@@ -353,33 +364,30 @@ GetFights = () =>{
 			MainParser.NewCityMapData[building.id] = newCityEntity;
 		});
 
-		ActiveMap = 'main';
-		$('#fp-bar').removeClass(possibleMaps).addClass(ActiveMap);
+		MainParser.UpdateActiveMap('main');
 	});
 
 
 	// main is entered
 	FoEproxy.addHandler('AnnouncementsService', 'fetchAllAnnouncements', (data, postData) => {
-		ActiveMap = 'main';
-		$('#fp-bar').removeClass(possibleMaps).addClass(ActiveMap);
+		MainParser.UpdateActiveMap('main');
 	});
 
 	// gex is entered
 	FoEproxy.addHandler('GuildExpeditionService', 'getOverview', (data, postData) => {
-		ActiveMap = 'gex';
-		$('#fp-bar').removeClass(possibleMaps).addClass(ActiveMap);
+		MainParser.UpdateActiveMap('gex');
 	});
 
 	// gg is entered
 	FoEproxy.addHandler('GuildBattlegroundService', 'getBattleground', (data, postData) => {
-		ActiveMap = 'gg';
-		$('#fp-bar').removeClass(possibleMaps).addClass(ActiveMap);
+		MainParser.UpdateActiveMap('gg');
 	});
 
-	// gvg is entered
-	FoEproxy.addHandler('ClanBattleService', 'getContinent', (data, postData) => {
-		ActiveMap = 'gvg';
-		$('#fp-bar').removeClass(possibleMaps).addClass(ActiveMap);
+	// QI is entered
+	FoEproxy.addHandler('GuildRaidsService', 'getState', (data, postData) => {
+		if (!data.responseData?.endsAt) return;
+		MainParser.UpdateActiveMap('guild_raids');
+
 	});
 
 
@@ -406,6 +414,19 @@ GetFights = () =>{
 		else if (data.requestMethod === 'placeBuilding') {
 			let building = data.responseData[0];
 			if (building && building.id) {
+				if (ActiveMap === "cultural_outpost") {
+					CityMap.CulturalOutpostData[building.id] = building
+					return
+				}
+				else if (ActiveMap === "era_outpost") {
+					CityMap.EraOutpostData[building.id] = building
+					return
+				}
+				else if (ActiveMap === "guild_raids") {
+					CityMap.QIData[building.id] = building
+					return
+				}
+
 				MainParser.CityMapData[building.id] = building;
 
 				let ceData = Object.values(MainParser.CityEntities).find(x => x.id == building.cityentity_id)
@@ -416,6 +437,18 @@ GetFights = () =>{
 		}
 		else if (data.requestMethod === 'removeBuilding') {
 			let ID = postData[0].requestData[0];
+			if (ActiveMap === "cultural_outpost") {
+				delete CityMap.CulturalOutpostData[ID];
+				return
+			}
+			else if (ActiveMap === "era_outpost") {
+				delete CityMap.EraOutpostData[ID];
+				return
+			}
+			else if (ActiveMap === "guild_raids") {
+				delete CityMap.QIData[ID];
+				return
+			}
 			if (ID && MainParser.CityMapData[ID]) {
 				delete MainParser.CityMapData[ID];
 			}
@@ -776,7 +809,7 @@ GetFights = () =>{
 
 		MainParser.Quests = data.responseData;
 
-		FoEproxy.pushFoeHelperMessage('QuestsUpdated');
+		FoEproxy.triggerFoeHelperHandler('QuestsUpdated');
 	});
 
 	// Update unlocked features
@@ -846,7 +879,6 @@ let MainParser = {
 	// all buildings of the player
 	CityMapData: {},
 	NewCityMapData: {},
-	CityMapEraOutpostData: null,
 	OtherPlayerCityMapData: {},
 
 	Quests: null,
@@ -1579,7 +1611,10 @@ let MainParser = {
 	UpdateInventoryAmount: (Item) => {
 			let ID = Item[0],
 			Amount = Item[1];
-			MainParser.Inventory[ID].inStock = Amount;
+			try {
+				MainParser.Inventory[ID].inStock = Amount;
+			} catch (e) {
+			}
 			Kits.UpdateBoxIfVisible();
 	},
 
@@ -1598,9 +1633,15 @@ let MainParser = {
 			let ID = Buildings[i]['id'];
 			if (MainParser.CityMapData[ID]) {
 				MainParser.CityMapData[ID] = Buildings[i];
+			} // hier
+			if (ActiveMap === "era_outpost") {
+				CityMap.EraOutpostData[ID] = Buildings[i];
 			}
-			if (MainParser.CityMapEraOutpostData && MainParser.CityMapEraOutpostData[ID]) {
-				MainParser.CityMapEraOutpostData[ID] = Buildings[i];
+			else if (ActiveMap === "cultural_outpost") {
+				CityMap.CulturalOutpostData[ID] = Buildings[i];
+			}
+			else if (ActiveMap === "guild_raids") {
+				CityMap.QIData[ID] = Buildings[i];
 			}
 		}
 		MainParser.SetArkBonus2();
@@ -1854,6 +1895,10 @@ let MainParser = {
 		}
 
 
+	},
+	UpdateActiveMap: (map)=>{
+		ActiveMap=map;
+		FoEproxy.triggerFoeHelperHandler("ActiveMapUpdated");
 	}
 
 };

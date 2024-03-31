@@ -30,21 +30,15 @@ FoEproxy.addHandler('ResourceShopService', 'buyOffer', (data)=> {
 
 
 // GEX started
-FoEproxy.addHandler('GuildExpeditionService', 'getOverview', (data, postData) => {
-	ActiveMap = 'gex';
-	StrategyPoints.ShowFPBar();
-});
+FoEproxy.addFoeHelperHandler('ActiveMapUpdated', () => {
+	if (['gex','gg','guild_raids'].includes(ActiveMap)) {
+		StrategyPoints.ShowFPBar(true);
+	} else {
+		StrategyPoints.HideFPBar();
+	}
+	$('#fp-bar').removeClass(possibleMaps).addClass(ActiveMap);
 
-// Guildfights enter
-FoEproxy.addHandler('GuildBattlegroundService', 'getBattleground', (data, postData) => {
-	StrategyPoints.ShowFPBar();
 });
-
-// main is entered
-FoEproxy.addHandler('AnnouncementsService', 'fetchAllAnnouncements', (data, postData) => {
-	StrategyPoints.HideFPBar();
-});
-
 
 /**
  * @type {{readonly AvailableFP: (*|number), ShowFPBar: (function(): (undefined)), HideFPBar: StrategyPoints.HideFPBar, OldStrategyPoints: number, checkForDB: (function(*): Promise<void>), pickupProductionId: null, pickupProductionBuilding: null, HandleWindowResize: StrategyPoints.HandleWindowResize, insertIntoDB: (function(*=): Promise<void>), RefreshBuyableForgePoints: StrategyPoints.RefreshBuyableForgePoints, RefreshBar: (function(*=): (undefined)), InventoryFP: number, db: null}}
@@ -127,9 +121,9 @@ let StrategyPoints = {
 	},
 
 
-	ShowFPBar: ()=>{
+	ShowFPBar: (force=false)=>{
 
-		if(ActiveMap === 'main'){
+		if(ActiveMap === 'main' && !force){
 			return ;
 		}
 
@@ -145,6 +139,8 @@ let StrategyPoints = {
 			const availableFPs = (ResourceStock['strategy_points'] !== undefined ? ResourceStock['strategy_points'] : 0);
 
 			$('.fp-bar-main').find('.number').text(availableFPs);
+			$('.fp-bar-main').removeClass('full');
+			$('.fp-bar-main').attr('title',HTML.i18nTooltip(i18n('StrategyPoints.FPInBar')));
 
 			const $bar = $('.fp-bar-main').find('.bars');
 
@@ -152,7 +148,7 @@ let StrategyPoints = {
 			$bar.find('span').remove();
 			for (let i = 0; i < availableFPs; i++) {
 				$bar.append(`<span />`);
-				if (i === 9) { break; }
+				if (i === 9) { $('.fp-bar-main').addClass('full'); break; }
 			}
 		}, 800);
 

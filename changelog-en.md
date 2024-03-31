@@ -1,10 +1,85 @@
 ## Changelog - Extension
 
-##### 3.6.0.0
+
+##### 3.6.3.0
 
 **Update**
+- City Overview:
+	- New: City Overview for Settlements, Space Colonies and Quantum Incursions
+- St Patrick:
+	- Added 6.3Q alert
+
+**BugFix**
+- St Patrick:
+	- It was possible that the strategy could not be edited
+- Polynesia Settlement:
+	- Added missing images
+- FP Bar:
+	- Moved it to the left in QI
+- Titan GBs:
+	- Some boosts were wrong
+
+---
+
+##### 3.6.2.0
+
+**Update**
+- Mergergame:
+	- adapted to event changes
+
+- Kits/Sets Module:
+	- now shows the amount of items needed for a full building
+
+**BugFix**
+- Settlements:
+	- fix 4x chance for first run
+
+- Statistics:
+	- improved datepicker (thanks Linnun!)
+
+---
+
+##### 3.6.1.1
+
+**BugFix**
+- FP Bar:
+	- The animation of the full FP bar lead to issues for many users, we removed it
+
+---
+
+##### 3.6.1.0
+
+**Update**
+- FP-Bar:
+	- new design
+
+- Kits/Sets:
+	- new design
+	- League rewards are now listed
+	- added new buildings (up to Anniversary 2024)
+
+- Mergergame (Anniversary-Event):
+	- prepared for Changes
+	- removed simulation and expected rewards
+
+- Blue Galaxy:
+	- sorting is now saved
+	- sorting may be switched between combined value and individual values (FP/Goods/Guild-Goods/Fragments)
+
+- Efficiency:
+	- Values 0 and below are now also shown
+
+- Gild Member Overview
+	- Guild-goods production of certain buildings added
+
 - GB Calculator:
 	- New settings: deactivate BP and medals
+
+**BugFix**
+- GB Calculator:
+	- Settings are nor saved/evaluated properly
+
+---
 
 ##### 3.5.0.2
 

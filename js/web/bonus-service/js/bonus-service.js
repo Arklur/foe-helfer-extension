@@ -21,11 +21,6 @@ FoEproxy.addHandler('CampaignService', 'start', (data, postData) => {
 	BonusService.InitBonus();
 });
 
-// GvG Map is opend
-FoEproxy.addHandler('ClanBattleService', 'getContinent', (data, postData) => {
-	BonusService.InitBonus();
-});
-
 // neihbor is visit
 FoEproxy.addHandler('OtherPlayerService', 'visitPlayer', (data, postData) => {
 	let OtherPlayer = data.responseData.other_player;
@@ -40,7 +35,7 @@ FoEproxy.addHandler('OtherPlayerService', 'visitPlayer', (data, postData) => {
 FoEproxy.addHandler('BonusService', 'getLimitedBonuses', (data, postData) => {
 	BonusService.Bonuses = data['responseData'];
 
-	FoEproxy.pushFoeHelperMessage('BonusUpdated');
+	FoEproxy.triggerFoeHelperHandler('BonusUpdated');
 
 	if ($('#bonus-hud').length > 0) {
 		BonusService.CalcBonusData();
