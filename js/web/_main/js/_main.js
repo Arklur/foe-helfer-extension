@@ -58,7 +58,7 @@ let ApiURL = 'https://api.foe-rechner.de/',
 	GameTimeOffset = 0,
 	GameTime = 0,
 	StartUpDone = new Promise(resolve => 
-			window.addEventListener('foe-helper#StartUpDone', resolve(), {once: true, passive: true})),
+			window.addEventListener('foe-helper#StartUpDone', resolve, {once: true, passive: true})),
 	Fights = [],
 	OwnUnits = [],
 	EnemyUnits = [],
@@ -385,7 +385,10 @@ GetFights = () =>{
 
 	// QI is entered
 	FoEproxy.addHandler('GuildRaidsService', 'getState', (data, postData) => {
+		if (!data.responseData?.guildRaidsType) return;
+		if (data.responseData?.__class__ != "GuildRaidsRunningState") return;
 		if (!data.responseData?.endsAt) return;
+
 		MainParser.UpdateActiveMap('guild_raids');
 
 	});
@@ -752,7 +755,7 @@ GetFights = () =>{
 	FoEproxy.addHandler('ResourceService', 'getPlayerResources', (data, postData) => {
 		ResourceStock = data.responseData.resources; // Lagerbestand immer aktualisieren. Betrifft auch andere Module wie Technologies oder Negotiation
 		Outposts.CollectResources();
-		StrategyPoints.ShowFPBar();
+		FoEproxy.triggerFoeHelperHandler('ResourcesUpdated')
 		Castle.UpdateCastlePoints(data['requestId']);
 	});
 
@@ -788,15 +791,27 @@ GetFights = () =>{
 
 
 	// --------------------------------------------------------------------------------------------------
-	// GüterUpdate nach angenommenen Handel
 	FoEproxy.addRawWsHandler((data) => {
-		let Msg = data[0];
-		if (Msg === undefined || Msg['requestClass'] === undefined) {
-			return;
+		let Msg = data?.[0];
+		if (!Msg || !Msg.requestClass || !Msg.responseData) return;
+
+		let requestClass = Msg.requestClass;
+		let requestMethod = Msg.requestMethod;
+		let responseData = Msg.responseData;
+
+		// Goods Update after accepted Trade
+		if (requestMethod === "newEvent" && responseData.type === "trade_accepted") {
+			ResourceStock[responseData.need.good_id] += responseData.need.value;
+			FoEproxy.triggerFoeHelperHandler("ResourcesUpdated");
 		}
-		if (Msg['requestMethod'] === "newEvent" && Msg['responseData']['type'] === "trade_accepted") {
-			let d = Msg['responseData'];
-			ResourceStock[d['need']['good_id']] += d['need']['value'];
+		// Inventory Update, e.g. when receiving FP packages from GB leveling	
+		if (requestClass === 'InventoryService' && requestMethod === 'getItem') {
+			MainParser.UpdateInventoryItem(responseData);
+		}
+
+		if (requestClass === 'InventoryService' && requestMethod === 'getItemAmount') {
+			MainParser.UpdateInventoryAmount(responseData);
+
 		}
 	});
 
@@ -1587,7 +1602,7 @@ let MainParser = {
 			let ID = Items[i]['id'];
 			MainParser.Inventory[ID] = Items[i];
 		}
-		Kits.UpdateBoxIfVisible();
+		FoEproxy.triggerFoeHelperHandler('InventoryUpdated');
 	},
 
 
@@ -1599,7 +1614,7 @@ let MainParser = {
 	UpdateInventoryItem: (Item) => {
 		let ID = Item['id'];
 		MainParser.Inventory[ID] = Item;
-		Kits.UpdateBoxIfVisible();
+		FoEproxy.triggerFoeHelperHandler('InventoryUpdated');
 	},
 
 
@@ -1615,7 +1630,7 @@ let MainParser = {
 				MainParser.Inventory[ID].inStock = Amount;
 			} catch (e) {
 			}
-			Kits.UpdateBoxIfVisible();
+			FoEproxy.triggerFoeHelperHandler('InventoryUpdated');
 	},
 
 
