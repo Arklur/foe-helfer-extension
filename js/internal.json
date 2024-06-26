@@ -18,6 +18,7 @@
 	"guildfights",
 	"stats",
 	"campagnemap",
+	"combat_power",
 	"bonus-service",
 	"technologies",
 	"negotiation",
@@ -60,5 +61,7 @@
 	"gbgbuildings",
 	"pvparena",
 	"qimap",
+	"worldchallenge",
+	"boost-potions",
 	"gbg-actionlog"
 ]

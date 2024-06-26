@@ -38,6 +38,7 @@ helper.str = {
 	 * <a href="/param">@param</a> {string} [textToCopy] Source string
 	 */
 	copyToClipboard: async(textToCopy) => {
+		if (!document.hasFocus()) return;
 		if (navigator && navigator.clipboard && navigator.clipboard.writeText) {
 			return navigator.clipboard.writeText(textToCopy);
 		} else {
@@ -139,6 +140,22 @@ helper.permutations = (()=>{
 helper.sounds = {
 	ping: new Audio(extUrl + 'vendor/sounds/ping.mp3'),
     message: new Audio(extUrl + 'vendor/sounds/message.mp3'),
+	play: (sound) => {
+		if (Settings.GetSetting('EnableSound')) helper.sounds[sound].play();
+	},
+};
+
+helper.preloader = { 
+	show: function(id) {
+		$('#gms-loading-data').remove();
+		$(id).append('<div id="gms-loading-data"><div class="loadericon"></div></div>');
+	},
+
+	hide: function() {
+		$('#gms-loading-data').fadeOut(500, function () {
+			$(this).remove();
+		})
+	}
 };
 
 let HTML = {
