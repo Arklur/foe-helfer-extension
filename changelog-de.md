@@ -1,8 +1,41 @@
 ## Changelog - Extension
 
+##### 3.8.0.0
+
+**Neu**
+- Produktionsübersicht Update:
+	- Fehlerkorrekturen und fehlende Gebäude hinzugefügt
+	- Güter-Übersicht überarbeitet
+	- Übersicht aller Fragmente und Items hinzugefügt inkl. Summe über alle Gebäude
+	- Filter hinzugefügt
+	- Boosts kategorisiert
+	- Eiheitenproduktion nach Typ und ZA summiert
+
+- Effizienzbewertung Update:
+	- Neue Kategorien hinzugefügt
+	- Neue Übersicht inklusive Anzeige der produzierten Fragmente
+	- Anzeige der Werte pro Feld hinzugefügt
+
+- Boost-Inventar
+	- listet alle Gebäude aus dem Inventar, die Boosts (zum Beispiel für den Kampf) bereitstellen
+
+- Aktive Mitglieder anderer Gilden
+	- wenn innerhalb von 5 Minuten, zweimal nacheinander die Details der selben fremden Gilde aufgerufen werden (Hauptquartier in den GG) und zumindest ein Mitglied dieser Gilde aktiv war, wird ein Fenster geöffnet, in dem die aktiven Mitglieder gelistet werden
+
+**Update**
+- Kits:
+	- Effizienz-Werte der Gebäude hinzugefügt
+
+- Technologien:
+	- Raumfahrt: Weltraumbasis Daten und Güter hinzugefügt
+
+**BugFix**
+- Fenster:
+	- können nun nicht mehr verschoben werden, wenn die Maus auf einen der Buttons des Fensters zeigt
+
 ##### 3.7.0.0
 
-**New**
+**Neu**
 - Tränke Übersicht hinzugefügt in der oberen rechten Ecke um
 	- die Laufzeit des Tranks mit kürzesten verbliebenen Laufzeit anzuzeigen (Tränke die für das aktuell gewählte Feature nicht relevant sind, werden ignoriert)
 	- alle aktuell aktiven Tränke in einem Mouse-Over Pop-Up anzuzeigen 
