@@ -8,13 +8,15 @@
 	- Güter-Übersicht überarbeitet
 	- Übersicht aller Fragmente und Items hinzugefügt inkl. Summe über alle Gebäude
 	- Filter hinzugefügt
-	- Boosts kategorisiert
-	- Eiheitenproduktion nach Typ und ZA summiert
+	- Kampf-Boosts kategorisiert
+	- Einheitenproduktion nach Typ und Zeitalter summiert
 
 - Effizienzbewertung Update:
 	- Neue Kategorien hinzugefügt
-	- Neue Übersicht inklusive Anzeige der produzierten Fragmente
-	- Anzeige der Werte pro Feld hinzugefügt
+	- Neue Übersicht inklusive Anzeige der produzierten Fragmente/Items
+	- Neu: Möglichkeit zu suchen und zu filtern
+	- Neu: Anzeige der Werte pro Feld hinzugefügt
+	- Neu: Gebäude, die man nicht hat, zum Vergleichen hinzufügen
 
 - Boost-Inventar
 	- listet alle Gebäude aus dem Inventar, die Boosts (zum Beispiel für den Kampf) bereitstellen
@@ -23,11 +25,22 @@
 	- wenn innerhalb von 5 Minuten, zweimal nacheinander die Details der selben fremden Gilde aufgerufen werden (Hauptquartier in den GG) und zumindest ein Mitglied dieser Gilde aktiv war, wird ein Fenster geöffnet, in dem die aktiven Mitglieder gelistet werden
 
 **Update**
+- Kampf-Assistent:
+	- es wird keine Warnung mehr ausgegeben, wenn eine Einheit eines höheren Zeitalters gefallen ist, da diese Einheiten jetzt im Krankenhaus wiederbelebt werden können
+
 - Kits:
 	- Effizienz-Werte der Gebäude hinzugefügt
 
 - Technologien:
 	- Raumfahrt: Weltraumbasis Daten und Güter hinzugefügt
+
+- Einstellungen:
+	- Kategorien umstrukturiert
+	- Fenster vergrößert und verschiebbar gemacht
+
+- Stadtübersicht QI:
+	- Gebäude werden nun nach Typ kategorisiert
+	- Münz- Vorrats- und Quantenaktionsboosts aus der Hauptstadt werden mitberechnet - danke Juber!
 
 **BugFix**
 - Fenster:

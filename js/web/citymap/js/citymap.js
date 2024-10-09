@@ -360,34 +360,19 @@ let CityMap = {
 
 
 	showQIStats: () => {
+		if (!CityMap.QIData) return
+		let boosts = MainParser.BoostSums
+		let supply_boost = boosts.guild_raids_supplies_production*0.01
+		let coin_boost = boosts.guild_raids_coins_production*0.01
 		let buildings = Object.values(CityMap.QIData)
-		let population = 0, totalPopulation = 0, euphoria = 0, euphoriaBoost = 0, supplies = 0, money = 0, att_def_boost_attacker = 0, att_def_boost_defender = 0, actions = 0
+		let population = 0, totalPopulation = 0, euphoria = 0, euphoriaBoost = 0, supplies = 0, money = 0, att_def_boost_attacker = 0, att_def_boost_defender = 0
+		let actions = boosts.guild_raids_action_points_collection
 		for (let b in buildings) {
 			let building = CityMap.setQIBuilding(MainParser.CityEntities[buildings[b]['cityentity_id']])
 			if (building.type !== "impediment" && building.type !== "street") {
 				population += building.population
-				euphoria += building.euphoria
 				totalPopulation += (building.population > 0 ? building.population : 0)
-				
-				if (building.boosts !== null) {
-					for (let i in building.boosts) {
-						let boost = building.boosts[i]
-						if (boost.type === "att_def_boost_attacker")
-							att_def_boost_attacker += boost.value 
-						if (boost.type === "att_def_boost_defender")
-							att_def_boost_defender += boost.value 
-						if (boost.type === "guild_raids_action_points_collection")
-							actions += boost.value 
-					}
-				}
-				if (building.production !== null) {
-					if (building.type !== "military" && building.type !== "goods" && building.type !== "main_building") {
-						if (building.production.guild_raids_supplies)
-							supplies += building.production.guild_raids_supplies
-						if (building.production.guild_raids_money)
-							money += building.production.guild_raids_money
-					}
-				}
+				euphoria += building.euphoria
 			}
 		}
 		let euphoriaFactor = euphoria/totalPopulation
@@ -406,13 +391,40 @@ let CityMap = {
 		else 
 			euphoriaBoost = 1.5
 
+		let now = MainParser.getCurrentDateTime()/1000
+		for (let b of buildings) {
+			let building = CityMap.setQIBuilding(MainParser.CityEntities[b.cityentity_id])
+			if (building.type !== "impediment" && building.type !== "street") {
+				
+				if (building.boosts !== null) {
+					for (let i in building.boosts) {
+						let boost = building.boosts[i]
+						if (boost.type === "att_def_boost_attacker")
+							att_def_boost_attacker += boost.value 
+						if (boost.type === "att_def_boost_defender")
+							att_def_boost_defender += boost.value
+						if (boost.type === "guild_raids_action_points_collection" && b.state.constructionFinishedAt < now)
+							actions += boost.value 
+					}
+				}
+				if (building.production !== null) {
+					if (building.type !== "military" && building.type !== "goods" && building.type !== "main_building") {
+						if (building.production.guild_raids_supplies)
+							supplies += Math.round(building.production.guild_raids_supplies*(euphoriaBoost+supply_boost))
+						if (building.production.guild_raids_money)
+							money += Math.round(building.production.guild_raids_money*(euphoriaBoost+coin_boost))
+					}
+				}
+			}
+		}
+
 		CityMap.QIStats = {
 			population: population,
 			totalPopulation: totalPopulation,
 			euphoria: euphoria,
 			euphoriaBoost: euphoriaBoost,
-			money: money*euphoriaBoost,
-			supplies: supplies*euphoriaBoost,
+			money: money,
+			supplies: supplies,
 			att_def_boost_attacker: att_def_boost_attacker,
 			att_def_boost_defender: att_def_boost_defender,
 			actions: actions,
@@ -424,9 +436,9 @@ let CityMap = {
 		out += '<span class="prod happiness">'+CityMap.QIStats.euphoriaBoost*100+'%</span> <br>'
 		out += '<span class="prod guild_raids_money">'+HTML.Format(CityMap.QIStats.money)+'</span> + '
 		out += '<span class="prod guild_raids_supplies">'+HTML.Format(CityMap.QIStats.supplies)+'</span> '+i18n('Boxes.CityMap.QICycle')+'<br>'
-		out += '<span class="prod guild_raids_action_points_collection">'+'+'+CityMap.QIStats.actions+'</span> '+i18n('Boxes.CityMap.QIActionRechargeCycle')+'<br>'
 		out += '<span class="prod att_def_boost_attacker">'+CityMap.QIStats.att_def_boost_attacker+'</span> '
-		out += '<span class="prod att_def_boost_defender">'+CityMap.QIStats.att_def_boost_defender+'</span> '
+		out += '<span class="prod att_def_boost_defender">'+CityMap.QIStats.att_def_boost_defender+'</span> '+'<br>'
+		out += '<span class="prod guild_raids_action_points_collection">'+'+'+CityMap.QIStats.actions+'</span> '+i18n('Boxes.CityMap.QIActionRechargeCycle')
 		
 		out += "<div>"
 		return out
@@ -434,6 +446,10 @@ let CityMap = {
 
 
 	showQIBuildings: () => {
+		let boosts = MainParser.BoostSums
+		let supply_boost = 0, coin_boost = 0
+		coin_boost = boosts.guild_raids_coins_production*0.01
+		supply_boost = boosts.guild_raids_supplies_production*0.01
 		let buildings = Object.values(CityMap.QIData)
 		buildings.sort((a, b) => {
 			if (a.cityentity_id < b.cityentity_id) return -1
@@ -442,13 +458,20 @@ let CityMap = {
 		})
 
 		let out = '<table class="foe-table">'
-		out += '<thead><tr><th>'+i18n('Boxes.CityMap.Building')+'</th><th class="population textright"></th><th class="happiness textright"></th><th>'+i18n('Boxes.CityMap.Boosts')+'</th></tr></thead>'
+		out += '<thead><tr><th colspan="2">'+i18n('Boxes.CityMap.Building')+'</th><th class="population textright"></th><th class="happiness textright"></th><th>'+i18n('Boxes.CityMap.Boosts')+'</th></tr></thead>'
 		out += "<tbody>"
-		for (let b in buildings) {
-			let building = CityMap.setQIBuilding(MainParser.CityEntities[buildings[b]['cityentity_id']])
 
+		let uniques = {}
+		for (let b of buildings) {
+			if (!uniques[b.cityentity_id]) 
+				uniques[b.cityentity_id] = 1
+			else
+				uniques[b.cityentity_id] += 1
+		}
+		for (let [id,count] of Object.entries(uniques)) {
+			let building = CityMap.setQIBuilding(MainParser.CityEntities[id])
 			if (building.type !== "impediment" && building.type !== "street") {
-				out += "<tr><td>" + building.name + "</td>"
+				out += "<tr><td>" + building.name + "</td><td>" + (count>1?"x"+count:"") + "</td>"
 				out += '<td class="textright">' + building.population + "</td>"
 				out += '<td class="textright">' + building.euphoria + "</td>"
 				out += "<td>"
@@ -459,9 +482,14 @@ let CityMap = {
 						out += (building.production.guild_raids_money ? '<span class="prod guild_raids_money">'+HTML.Format(building.production.guild_raids_money*-1.0)+'</span> ' : "")	
 					}
 					else {
-						let eBoost = (building.type === "main_building" ? 1.0 : CityMap.QIStats.euphoriaBoost)
-						out += (building.production.guild_raids_supplies ? '<span class="prod guild_raids_supplies">'+HTML.Format(building.production.guild_raids_supplies*eBoost)+'</span> ' : " ")
-						out += (building.production.guild_raids_money ? '<span class="prod guild_raids_money">'+HTML.Format(building.production.guild_raids_money*eBoost)+'</span> ' : "")
+						let eBoost = CityMap.QIStats.euphoriaBoost
+						if (building.type === "main_building"){
+							out += (building.production.guild_raids_supplies ? '<span class="prod guild_raids_supplies">'+HTML.Format(Math.round(building.production.guild_raids_supplies))+'</span> ' : " ")
+							out += (building.production.guild_raids_money ? '<span class="prod guild_raids_money">'+HTML.Format(Math.round(building.production.guild_raids_money))+'</span> ' : "")
+						} else{
+							out += (building.production.guild_raids_supplies ? '<span class="prod guild_raids_supplies">'+HTML.Format(Math.round(building.production.guild_raids_supplies*(eBoost+supply_boost)))+'</span> ' : " ")
+							out += (building.production.guild_raids_money ? '<span class="prod guild_raids_money">'+HTML.Format(Math.round(building.production.guild_raids_money*(eBoost+coin_boost)))+'</span> ' : "")
+						}
 					}
 				}
 				if (building.boosts !== null) {
@@ -522,6 +550,8 @@ let CityMap = {
 
 		CityMap.OccupiedArea = 0;
 		CityMap.OccupiedArea2 = [];
+		CityMap.buildingsTotal = 0
+		CityMap.streetsTotal = 0
 		let StreetsNeeded = 0;
 
 		CityMap.BuildGrid();
@@ -559,13 +589,17 @@ let CityMap = {
 				.attr('data-id', building.id);
 
 			CityMap.OccupiedArea += (building.size.width * building.size.length);
+			if (building.type == "street")
+				CityMap.streetsTotal++
+			else
+				CityMap.buildingsTotal++
 
 			if (!CityMap.OccupiedArea2[building.type]) CityMap.OccupiedArea2[building.type] = 0;
 			CityMap.OccupiedArea2[building.type] += (building.size.width * building.size.length);
 
-			StreetsNeeded += (building.state.connected && building.type != "street" ? parseFloat(Math.min(building.size.width, building.size.length)) * building.needsStreet / 2 : 0);
+			StreetsNeeded += (building.state.connected && building.type != "street" ? parseFloat(Math.min(building.size.width, building.size.length)) * building.needsStreet / 2 : 0)
 
-			if(building.eraName){
+			if (building.eraName) {
 				let era = Technologies.Eras[building.eraName]
 
 				f.attr({
@@ -573,9 +607,8 @@ let CityMap = {
 				})
 
 				if (era < CurrentEraID && building.type != "greatbuilding" && era != 0) {
-					f.addClass('oldBuildings');
-
-					let eraDiff = CurrentEraID - era;
+					f.addClass('oldBuildings')
+					let eraDiff = CurrentEraID - era
 					
 					switch(eraDiff){
 						case 1:
@@ -624,25 +657,31 @@ let CityMap = {
 	 * Statistics on the right sidebar
 	 */
 	getAreas: ()=>{
-		let ua = CityMap.IsExtern ? CityMap.OtherPlayerUnlockedAreas : CityMap.UnlockedAreas;
-		let total = ((ua.length - 1) * 16) + 256, // x*(4*4) + the starting area (16*16)
+		let total = ((CityMap.UnlockedAreas.length -1) * 16) + 256, // x + (4*4) + 16*16
 			occupied = CityMap.OccupiedArea,
 			txtTotal = i18n('Boxes.CityMap.WholeArea') + total,
-			txtFree = i18n('Boxes.CityMap.FreeArea') + (total - occupied);
+			txtFree = i18n('Boxes.CityMap.FreeArea') + (total - occupied),
+			txtTotalBuildings = i18n('Boxes.CityMap.BuildingsAmount') + CityMap.buildingsTotal,
+			txtTotalStreets = i18n('Boxes.CityMap.StreetsAmount') + CityMap.streetsTotal;
 
 		if( $('#area-state').length === 0 ){
 			let aW = $('<div />').attr('id', 'area-state');
 
-			aW.append( $('<p />').addClass('total-area') );
-			aW.append( $('<p />').addClass('occupied-area') );
 			aW.append( $('<div />').addClass('building-count-area') );
 			aW.append( $('<p />').addClass('to-old-legends').hide() );
+			aW.append( $('<p />').addClass('total-area') );
+			aW.append( $('<p />').addClass('occupied-area') );
+			aW.append( $('<p />').addClass('total-buildings') );
 
 			$('#sidebar').append(aW);
 		}
 
-		$('.total-area').html(txtTotal);
-		$('.occupied-area').html(txtFree);
+		// Non player city => Unlocked areas cant be detected => dont show free space
+		if (!CityMap.IsExtern) {
+			$('.total-area').html(txtTotal);
+			$('.occupied-area').html(txtFree);
+			$('.total-buildings').html(txtTotalBuildings);
+		}
 
 		let sortable = [];
 		for(let x in CityMap.OccupiedArea2) sortable.push([x, CityMap.OccupiedArea2[x]]);
@@ -651,13 +690,11 @@ let CityMap = {
 
 		let txtCount = [];
 
-		for(let x in sortable )
-		{
-			if(!sortable.hasOwnProperty(x)){
-				break;
-			}
+		for(let x in sortable ) {
+			if(!sortable.hasOwnProperty(x))	break
 
 			let type =  sortable[x][0];
+
 			let TypeName = i18n('Boxes.CityMap.' + type)
 			const count = sortable[x][1];
 			const pct = parseFloat(100*count/CityMap.OccupiedArea).toFixed(1);
@@ -1567,16 +1604,29 @@ let CityMap = {
 									}
 									rewards.push(newReward)
 								}
-								else if (reward.product.type === "resources") { // currently: playerResources.resources.strategy_points
-									let newReward = {
-										id: null,
-										type: "resources",
-										name: i18n('Boxes.OwnpartCalculator.OptionsFP'), // ugly
-										subType: Object.keys(reward.product.playerResources.resources)[0], // warning: hacky
-										amount: reward.product.playerResources.resources.strategy_points, // warning: hacky
-										dropChance: reward.dropChance,
+								else if (reward.product.type === "resources") {
+									if (reward.product.playerResources.resources.strategy_points != undefined) { // FP
+										let newReward = {
+											id: null,
+											type: "resources",
+											name: i18n('Boxes.OwnpartCalculator.OptionsFP'), // ugly
+											subType: Object.keys(reward.product.playerResources.resources)[0],
+											amount: reward.product.playerResources.resources.strategy_points,
+											dropChance: reward.dropChance,
+										}
+										rewards.push(newReward)
 									}
-									rewards.push(newReward)
+									else { // goods - for now - hacky
+										let newReward = {
+											id: null,
+											type: "goods",
+											name: i18n('Boxes.BlueGalaxy.Goods'),
+											subType: Object.keys(reward.product.playerResources.resources)[0],
+											amount: Object.values(reward.product.playerResources.resources)[0],
+											dropChance: reward.dropChance,
+										}
+										rewards.push(newReward)
+									}
 								}
 							});
 							resource.resources = rewards
@@ -1728,24 +1778,25 @@ let CityMap = {
 						if (reward.id.search("blueprint") != -1)
 							lookupData = reward
 					}
-					//amount = lookupData.possible_rewards[0].reward.amount // hacky, because every chest item could have a different amount of blueprints
-					//console.log(metaData.name, amount)
+					// amount = lookupData.possible_rewards[0].reward.amount // hacky, because every chest item could have a different amount of blueprints
+					// console.log(metaData.name, amount)
 				}
 			}
 			else if (product.reward.type == "good") { // this can break if there is more than one generic goods reward for a building
 				for (const [key, reward] of Object.entries(metaData.components[era].lookup.rewards)) {
 					if (reward.id.includes("good"))
-						lookupData = reward;
+						lookupData = reward
 				}
 			}
-			else if (product.reward.id.includes('goods') && !/(fragment|rush)/.test(product.reward.id)) { // for nextage goods, because they are in a chest
+			else if (product.reward.id.includes('goods') && !/(fragment|rush)/.test(product.reward.id)) { // for nextage goods, because they are in a chest (random ones)
+				// todo: this not only covers chests now, so implementation needs to be looked at more carefully
 				lookupData = metaData.components[era].lookup.rewards[product.reward.id] // take first chest reward and work with that
 				return {
 					id: product.reward.id,
 					name: lookupData.name.replace(/^\d+\s*/,""),
 					type: "resources",
 					subType: "good",
-					amount: parseInt(product.reward.id.match(/\d+$/)[0]),
+					amount: lookupData.totalAmount || parseInt(product.reward.id.match(/\d+$/)[0]),
 					icon: lookupData.iconAssetName
 				}
 			}
@@ -1758,11 +1809,15 @@ let CityMap = {
 							lookupData = possibleReward.reward
 					}
 				}
+				else {
+					amount = lookupData.amount
+				}
 			}
 		}
-		if (amount == 0)
+		if (amount == 0) {
 			amount = Number(lookupData?.name.replace(/^([+-]*[0-9]+?) .*/,"$1"));
 			if (isNaN(amount)) amount = lookupData.amount
+		}
 
 		let name = ""
 		if (lookupData) 
@@ -1797,7 +1852,7 @@ let CityMap = {
 			amount: amount, // amount can be undefined for blueprints or units if building is not motivated
 			icon: lookupData?.iconAssetName
 		}
-		return reward;
+		return reward
 	},
 
 	// returns { unit_type: amount } 
@@ -1856,10 +1911,9 @@ let CityMap = {
 				name = lookupData.id.replace("unit_","").replace(/\d+/,"")
 		}
 		else if (lookupData.type == "blueprint")  // id: "blueprint#random#3"
-			name = lookupData.name.replace(/^\+/,"").replace(/^\d+\s*/,"")
+			name = lookupData.name.replace(/^\+?\d+\s*/,"")
 		else if (lookupData.type == "chest" && lookupData.id.includes("blueprint")) { // remove +20 from the name becuase the amount is in the amount
-			name = lookupData.name.replace(/^\+\d+\s*/,"")
-			name = name.replace(/^\d+\s*/,"") // just to be sure if there is no + at the start for other languages
+			name = lookupData.name.replace(/^\+?\d+\s*/,"")
 		}
 		else if (lookupData.type == "chest") { // chest can be: BP - see above, units, goods (next age)
 			name = lookupData.name
@@ -1867,7 +1921,7 @@ let CityMap = {
 		else if (lookupData.type == "consumable")
 			name = lookupData.name
 		else if (lookupData.type == "good"){
-			name = lookupData.name.replace(/^[\+\d+\s]*/,"")
+			name = lookupData.name.replace(/^\+?\d+\s]*/,"")
 		} else {
 			console.log("CityMap.setRewardNameFromLookupData(): undefined name from type", metaData.name, lookupData, lookupData.type, lookupData.subType)
 		}
@@ -1985,15 +2039,15 @@ let CityMap = {
 						}
 					})
 				}
-				if (production.type == 'random') { // e.g. gentania windmill
+				if (production.type == 'random') { // e.g. gentania windmill, eerie terror coaster
 					let goodEra = Technologies.InnoEras[building.eraName]
 					for (const resource of production.resources) {
 						if (resource.type?.includes("good") && !resource.type?.includes("guild")) {
 							goods.hasRandomProduction = true // this is not a perfect solution, because it is general & not per good
 
-							if (resource.type.includes('previous'))
+							if (resource.type.includes('previous') || resource.subType?.toLowerCase().includes('previous') || resource.id?.toLowerCase().includes('previous'))
 								goodEra = Technologies.getPreviousEraIdByCurrentEraName(building.eraName)
-							else if (resource.type.includes('next'))
+							else if (resource.type.includes('next') || resource.subType?.toLowerCase().includes('next') || resource.id?.toLowerCase().includes('next'))
 								goodEra = Technologies.getNextEraIdByCurrentEraName(building.eraName)
 
 							if (goods.eras[goodEra] == undefined)
@@ -2003,18 +2057,17 @@ let CityMap = {
 						}
 					}
 				}
-				if (production.type === 'genericReward' && /good.?/.test(production.resources?.type)) { // e.g. eco hub
+				if (production.type === 'genericReward' && /good/.test(production.resources?.icon)) { // e.g. eco hub
 					let goodEra = Technologies.InnoEras[building.eraName]
 					if (production.resources.id.includes('previous'))
 						goodEra = Technologies.getPreviousEraIdByCurrentEraName(building.eraName)
-					else if (production.resources.icon == "next_age_goods")
+					else if (production.resources.icon == "next_age_goods" || production.resources.id.includes('next'))
 						goodEra = Technologies.getNextEraIdByCurrentEraName(building.eraName)
-					
+
 					if (goods.eras[goodEra] == undefined)
 						goods.eras[goodEra] = parseInt(production.resources.amount)
 					else 
 						goods.eras[goodEra] += parseInt(production.resources.amount)
-					
 				}
 			})
 		}
@@ -2096,7 +2149,7 @@ let CityMap = {
 			}
 		}
 		
-		//if (entity.type != "street")
+		//if (entity.entityId != "street")
 		//	console.log('entity ', entity.name, entity, metaData, data)
 		return entity
 	},
