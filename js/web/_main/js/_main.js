@@ -244,6 +244,7 @@ GetFights = () =>{
 		GexStat.checkForDB(ExtPlayerID);
 		GuildFights.checkForDB(ExtPlayerID);
 		GBGActionLog.checkForDB(ExtPlayerID);
+		QIMap.checkForDB(ExtPlayerID);
 
 		// which tab is active in StartUp Object?
 		let vals = {
@@ -327,9 +328,20 @@ GetFights = () =>{
 		MainParser.Allies.addAlly(data.responseData);
 	});
 
-	// QI map
+	// QI map (layout + nodes)
 	FoEproxy.addHandler('GuildRaidsMapService', 'getOverview', (data, postData) => {		
-		QIMap.init(data.responseData)
+		QIMap.initCurrentLevel(data.responseData)
+	})
+
+
+	// QI map (state/championship/season)
+	FoEproxy.addHandler('GuildRaidsService', 'getState', (data, postData) => {		
+		QIMap.initSeason(data.responseData)
+	})
+
+	// QI map (node leaderboard)
+	FoEproxy.addHandler('GuildRaidsMapService', 'getNodeLeaderboard', (data, postData) => {		
+		QIMap.loadNodeLeaderboard(data.responseData, postData)
 	})
 
 	// CastleSystem rewards
